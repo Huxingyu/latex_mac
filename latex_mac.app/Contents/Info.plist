@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleExecutable</key>
+    <string>latex_mac</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.example.latex-mac</string>
+    <key>CFBundleName</key>
+    <string>LaTeX Mac</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>10.15</string>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+    <key>NSUserNotificationAlertStyle</key>
+    <string>alert</string>
+    <key>NSNotificationCenterAccessoryViewBundleIdentifier</key>
+    <string>com.example.latex-mac</string>
+    <key>NSUserNotificationCenterEnabled</key>
+    <true/>
+    <key>NSAppleEventsUsageDescription</key>
+    <string>需要访问系统通知以显示转换结果</string>
+    <key>NSNotificationsUsageDescription</key>
+    <string>需要通知权限以显示转换结果</string>
+    <key>NSPrincipalClass</key>
+    <string>NSApplication</string>
+    <key>LSUIElement</key>
+    <true/>
+    <key>CFBundleIconFile</key>
+    <string>cat</string>
+    <key>NSUserNotificationIconFile</key>
+    <string>cat</string>
+</dict>
+</plist>
