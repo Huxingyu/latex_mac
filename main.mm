@@ -10,9 +10,173 @@
 #define kEventCommandKeyMask (1 << 8)
 #define kEventShiftKeyMask (1 << 9)
 
+@interface MainWindowController : NSWindowController <NSSplitViewDelegate>
+@property (strong) NSImageView *imageView;
+@property (strong) NSTextView *latexTextView;
+- (void)updateWithImage:(NSImage *)image andLatex:(NSString *)latex;
+@end
+
+@implementation MainWindowController
+
+- (instancetype)init {
+    self = [super initWithWindow:[[NSWindow alloc] initWithContentRect:NSMakeRect(0, 0, 800, 600)
+                                                          styleMask:NSWindowStyleMaskTitled |
+                                                                    NSWindowStyleMaskClosable |
+                                                                    NSWindowStyleMaskMiniaturizable
+                                                            backing:NSBackingStoreBuffered
+                                                              defer:NO]];
+    if (self) {
+        NSWindow *window = self.window;
+        window.title = @"LaTeX转换";
+        [window center];
+        
+        // 创建分割视图
+        NSSplitView *splitView = [[NSSplitView alloc] initWithFrame:window.contentView.bounds];
+        splitView.vertical = NO;
+        splitView.delegate = self;
+        splitView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
+        splitView.dividerStyle = NSSplitViewDividerStyleThin;
+        
+        // 设置分割视图的背景颜色
+        splitView.wantsLayer = YES;
+        splitView.layer.backgroundColor = [NSColor windowBackgroundColor].CGColor;
+        
+        // 创建图片视图容器
+        NSView *imageContainer = [[NSView alloc] init];
+        imageContainer.translatesAutoresizingMaskIntoConstraints = NO;
+        imageContainer.wantsLayer = YES;
+        imageContainer.layer.backgroundColor = [NSColor windowBackgroundColor].CGColor;
+        
+        // 创建图片视图
+        self.imageView = [[NSImageView alloc] init];
+        self.imageView.imageScaling = NSImageScaleProportionallyDown;
+        self.imageView.translatesAutoresizingMaskIntoConstraints = NO;
+        [imageContainer addSubview:self.imageView];
+        
+        // 设置图片视图约束，限制最大尺寸
+        [NSLayoutConstraint activateConstraints:@[
+            [self.imageView.centerXAnchor constraintEqualToAnchor:imageContainer.centerXAnchor],
+            [self.imageView.centerYAnchor constraintEqualToAnchor:imageContainer.centerYAnchor],
+            [self.imageView.widthAnchor constraintLessThanOrEqualToConstant:600],
+            [self.imageView.heightAnchor constraintLessThanOrEqualToConstant:400],
+            [self.imageView.widthAnchor constraintLessThanOrEqualToAnchor:imageContainer.widthAnchor constant:-40],
+            [self.imageView.heightAnchor constraintLessThanOrEqualToAnchor:imageContainer.heightAnchor constant:-40]
+        ]];
+        
+        // 创建文本视图容器
+        NSView *textContainer = [[NSView alloc] init];
+        textContainer.translatesAutoresizingMaskIntoConstraints = NO;
+        textContainer.wantsLayer = YES;
+        textContainer.layer.backgroundColor = [NSColor windowBackgroundColor].CGColor;
+        
+        // 创建标题标签
+        NSTextField *titleLabel = [[NSTextField alloc] init];
+        titleLabel.translatesAutoresizingMaskIntoConstraints = NO;
+        titleLabel.editable = NO;
+        titleLabel.bordered = NO;
+        titleLabel.backgroundColor = [NSColor clearColor];
+        titleLabel.font = [NSFont boldSystemFontOfSize:14];
+        titleLabel.stringValue = @"识别结果：";
+        [textContainer addSubview:titleLabel];
+        
+        // 创建文本视图
+        NSScrollView *scrollView = [[NSScrollView alloc] init];
+        scrollView.translatesAutoresizingMaskIntoConstraints = NO;
+        scrollView.hasVerticalScroller = YES;
+        scrollView.hasHorizontalScroller = YES;
+        scrollView.autohidesScrollers = YES;
+        
+        self.latexTextView = [[NSTextView alloc] initWithFrame:NSMakeRect(0, 0, 400, 200)];
+        self.latexTextView.editable = NO;
+        self.latexTextView.font = [NSFont monospacedSystemFontOfSize:14 weight:NSFontWeightRegular];
+        self.latexTextView.textContainerInset = NSMakeSize(10, 10);
+        self.latexTextView.backgroundColor = [NSColor controlBackgroundColor];
+        self.latexTextView.minSize = NSMakeSize(0.0, 0.0);
+        self.latexTextView.maxSize = NSMakeSize(FLT_MAX, FLT_MAX);
+        self.latexTextView.verticallyResizable = YES;
+        self.latexTextView.horizontallyResizable = YES;
+        self.latexTextView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
+        scrollView.documentView = self.latexTextView;
+        
+        [textContainer addSubview:scrollView];
+        
+        // 设置文本容器中的约束
+        [NSLayoutConstraint activateConstraints:@[
+            [titleLabel.topAnchor constraintEqualToAnchor:textContainer.topAnchor constant:20],
+            [titleLabel.leadingAnchor constraintEqualToAnchor:textContainer.leadingAnchor constant:20],
+            
+            [scrollView.topAnchor constraintEqualToAnchor:titleLabel.bottomAnchor constant:10],
+            [scrollView.leadingAnchor constraintEqualToAnchor:textContainer.leadingAnchor constant:20],
+            [scrollView.trailingAnchor constraintEqualToAnchor:textContainer.trailingAnchor constant:-20],
+            [scrollView.bottomAnchor constraintEqualToAnchor:textContainer.bottomAnchor constant:-20]
+        ]];
+        
+        // 添加视图到分割视图
+        [splitView addSubview:imageContainer];
+        [splitView addSubview:textContainer];
+        
+        // 为分割视图的子视图添加约束
+        [NSLayoutConstraint activateConstraints:@[
+            [imageContainer.leadingAnchor constraintEqualToAnchor:splitView.leadingAnchor],
+            [imageContainer.trailingAnchor constraintEqualToAnchor:splitView.trailingAnchor],
+            [imageContainer.heightAnchor constraintEqualToConstant:200], // 设置固定高度
+            
+            [textContainer.leadingAnchor constraintEqualToAnchor:splitView.leadingAnchor],
+            [textContainer.trailingAnchor constraintEqualToAnchor:splitView.trailingAnchor],
+            [textContainer.topAnchor constraintEqualToAnchor:imageContainer.bottomAnchor],
+            [textContainer.bottomAnchor constraintEqualToAnchor:splitView.bottomAnchor]
+        ]];
+        
+        window.contentView = splitView;
+    }
+    return self;
+}
+
+#pragma mark - NSSplitViewDelegate
+
+- (CGFloat)splitView:(NSSplitView *)splitView constrainMinCoordinate:(CGFloat)proposedMinimumPosition ofSubviewAt:(NSInteger)dividerIndex {
+    return 150.0; // 设置最小高度
+}
+
+- (CGFloat)splitView:(NSSplitView *)splitView constrainMaxCoordinate:(CGFloat)proposedMaximumPosition ofSubviewAt:(NSInteger)dividerIndex {
+    return splitView.frame.size.height - 150.0; // 确保底部视图至少有150像素高
+}
+
+- (BOOL)splitView:(NSSplitView *)splitView canCollapseSubview:(NSView *)subview {
+    return NO; // 禁止折叠子视图
+}
+
+- (void)updateWithImage:(NSImage *)image andLatex:(NSString *)latex {
+    // 设置图片
+    self.imageView.image = image;
+    
+    // 更新LaTeX文本
+    if (latex) {
+        // 移除可能的前缀路径信息
+        NSString *cleanLatex = latex;
+        if ([latex containsString:@": "]) {
+            NSArray *components = [latex componentsSeparatedByString:@": "];
+            if (components.count > 1) {
+                cleanLatex = components[1];
+            }
+        }
+        
+        // 移除多余的空白字符
+        cleanLatex = [cleanLatex stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+        
+        // 设置文本
+        [self.latexTextView setString:cleanLatex];
+    } else {
+        [self.latexTextView setString:@""];
+    }
+}
+
+@end
+
 @interface AppDelegate : NSObject <NSApplicationDelegate, UNUserNotificationCenterDelegate>
 @property (nonatomic, strong) NSStatusItem *statusItem;
 @property (nonatomic, strong) id shortcutMonitor;
+@property (nonatomic, strong) MainWindowController *mainWindowController;
 - (void)dealloc;
 @end
 
@@ -59,6 +223,10 @@
     
     // 注册全局快捷键 (Command + Shift + X)
     [self registerGlobalShortcut];
+    
+    // 创建并显示主窗口
+    self.mainWindowController = [[MainWindowController alloc] init];
+    [self.mainWindowController showWindow:nil];
     
     [[NSApplication sharedApplication] setActivationPolicy:NSApplicationActivationPolicyRegular];
     [NSApp activateIgnoringOtherApps:YES];
@@ -134,6 +302,9 @@ OSStatus hotKeyHandler(EventHandlerCallRef nextHandler, EventRef theEvent, void 
     
     // 检查文件是否存在
     if ([[NSFileManager defaultManager] fileExistsAtPath:tempImagePath]) {
+        // 加载截图
+        NSImage *capturedImage = [[NSImage alloc] initWithContentsOfFile:tempImagePath];
+        
         // 调用pix2tex处理图片
         NSTask *pix2tex = [[NSTask alloc] init];
         
@@ -176,6 +347,11 @@ OSStatus hotKeyHandler(EventHandlerCallRef nextHandler, EventRef theEvent, void 
                 }
             }
             
+            // 更新主窗口显示
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [self.mainWindowController updateWithImage:capturedImage andLatex:output];
+            });
+            
             // 读取错误输出
             NSFileHandle *errorFile = [errorPipe fileHandleForReading];
             NSData *errorData = [errorFile readDataToEndOfFile];
@@ -185,6 +361,9 @@ OSStatus hotKeyHandler(EventHandlerCallRef nextHandler, EventRef theEvent, void 
             if (error.length > 0) {
                 NSLog(@"pix2tex error: %@", error);
             }
+            
+            // 更新主窗口显示
+            [self.mainWindowController updateWithImage:capturedImage andLatex:output];
             
             // 将结果写入剪贴板
             if (output.length > 0) {
